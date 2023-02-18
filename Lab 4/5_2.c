@@ -10,14 +10,13 @@
 #include <util/delay.h>
 #include <stdio.h>
 #include <avr/interrupt.h>
+#include "uart_utility_functions.h"
 
 typedef enum {
 	RED,
 	GREEN,
 	ORANGE
 } State;
-
-
 
 #define LED_GREEN PB0
 #define LED_ORANGE PB1
@@ -86,6 +85,8 @@ State current_state = RED;
 
 int main(void)
 {
+	init_uart();
+	
 	// Initialization Stage
 	// Configure timer 0 with CTC mode and prescaler of 1024
 	TCCR0A |= (1<<WGM01);
