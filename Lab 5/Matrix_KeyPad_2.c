@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <util/delay.h>
+#include "uart_utility_functions.h"
 
 //Volatile Variable
 volatile int row;
