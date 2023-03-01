@@ -16,6 +16,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "uart_utility_functions.h"
+
 //Global variables
 volatile unsigned char MIP; //Measurement-In-Progress Flag
 volatile unsigned int ECHOHigh, ECHOHighTimes;
@@ -47,18 +49,18 @@ ISR (TIMER1_CAPT_vect)
 	// Start and Stop ECHO measurement;
 	if((TCCR1B & (1 << ICES1)) != 0)  // a rising edge has been detected
 	{
-		TCCR1B |= (1 << ICES1);  // Configure Falling Edge Capture for end of echo pulse. (xx)
+		TCCR1B &= ~(1 << ICES1);  // Configure Falling Edge Capture for end of echo pulse. (xx)
 		TCCR1B |= (1 << CS11);  // Start counting with prescaler=8 (xx)
 	
 	}
 	
 	else // a falling edge has been detected
 	{						
-		ECHOLow = xx; //See lecture notes for this equation, decimal places added to make calculation a decimal (xx)
+		ECHOLow = (double)(ICR1 * 0.000016); //See lecture notes for this equation, decimal places added to make calculation a decimal (xx)
 		ECHOHigh = ECHOHighTimes; //EchoHigh will have a value if the count exceeded the size of the register (xx)
-		OCR1B = xx;			// set register to count the 10 mS Post echo Delay (xx)
-		TIMSK1 = xx;	// Enables the Compare B interrupt for POST Trigger Delay: Approx 10mS (xx)
-		xx;	//initialize the counter to zero (xx)
+		OCR1B = 16000;			// set register to count the 10 mS Post echo Delay (xx)
+		TIMSK1 |= (1<<OCIE1B) ;	// Enables the Compare B interrupt for POST Trigger Delay: Approx 10mS (xx)
+		TCNT1 = 0;	//initialize the counter to zero (xx)
 	}
 }
 
@@ -76,9 +78,9 @@ Interrupt service routine called when the counter 1 has reached the compare valu
 ***************************************************************************************/
 ISR (TIMER1_COMPA_vect) // Compare A : End of Trigger Pulse
 {	
-	xx;	//Clear the trigger pin (xx)
-	xx; // enables the Timer/Counter1 Overflow and Timer Counter1 Capture interrupt; (xx)
-	xx;	// Set Positive edge for capture but Don't count yet...only start counting once the echo pulse goes high (xx)
+	PORTD &= ~(1<<DDD2);	//Clear the trigger pin (xx)
+	TIMSK1 |= (1 << TOIE1) | (1 << ICIE1); // enables the Timer/Counter1 Overflow and Timer Counter1 Capture interrupt; (xx)
+	TCCR1B |= (1 << ICES1);	// Set Positive edge for capture but Don't count yet...only start counting once the echo pulse goes high (xx)
 }
 
 /******************************************************************************
@@ -89,21 +91,21 @@ void Trigger( void ) // Config Timer 1 for 10uS pulse.
 	{	
 		MIP = 1; // Set Measurement-In-Progress FLAG
 		
-		xx;		// Set Output pin for Trigger pulse. (xx)
-		xx;		// Set Input pin for Input Capture (ECHO) (xx)
-		xx;		//Set the pull-up resistor on Echo pin (xx)
+		DDRD |= (1 << DDD2);		// Set Output pin for Trigger pulse. (xx)
+		DDRD &= ~(1 << DDD3);		// Set Input pin for Input Capture (ECHO) (xx)
+		PORTD |= (1 << DDD3);		//Set the pull-up resistor on Echo pin (xx)
 		
 		TCNT1 = 0;			// Clear last Echo times.
 		ECHOHighTimes = 0;		// Keeps track of how many times the Timer1 counter overflows, this indicates that the echo time is greater than 30ms
 		
-		OCR1A = xx;			// set register to count the 10 us Trigger length (xx)
+		OCR1A = 160;			// set register to count the 10 us Trigger length (xx)
 
-		TIFR1 = xx;			// Clear all timer interrupt flags (xx)
-		TCCR1A = xx;			// Normal compare output mode, Normal timer/counter mode (xx)
-		xx;		// enable output compare A match interrupt enabled (xx)
+		TIFR1 = (1 << ICF1) | (1 << OCF1A) | (1 << OCF1B);			// Clear all timer interrupt flags (xx)
+		TCCR1A = 0;			// Normal compare output mode, Normal timer/counter mode (xx)
+		TIMSK1 |= (1 << OCIE1A);		// enable output compare A match interrupt enabled (xx)
 	
-		xx;		// Start the trigger pulse. (Output a HIGH to trigger pin) (xx)
-		xx;  		// Counting with prescaler=8, CTC Mode enabled, counting enabled (xx)
+		PORTD |= (1 << DDD2);		// Start the trigger pulse. (Output a HIGH to trigger pin) (xx)
+		TCCR1B |= (1 << CS11) | (1 << WGM12);  		// Counting with prescaler=8, CTC Mode enabled, counting enabled (xx)
 
 	}
 	
