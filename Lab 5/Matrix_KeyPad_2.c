@@ -2,7 +2,7 @@
  * Matrix_KeyPad_sara.c
  *
  * Created: 10/2/2022 1:38:45 PM
- * Author : sara.stout-grandy
+ * Author : Jaswanth Kumaar
  *
  * Output button presses to Putty via USART but with button push & release 
  * Fill in the missing code at every "xx"
